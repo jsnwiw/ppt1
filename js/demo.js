@@ -17,41 +17,92 @@
 (function () {
   'use strict';
 
-  // 음성 TTS 제어 상태
+  // 음성 TTS 제어 상태 (구글 TTS 엔진 기반)
   let ttsEnabled = true;
+  let currentAudio = null;
 
-  // 음성 발화 함수 (Web Speech API)
-  function speakText(text) {
-    if (!ttsEnabled || !('speechSynthesis' in window)) return;
+  // 구글 TTS(Google TTS) 발화 함수
+  function speakText(text, onEnd) {
+    if (!ttsEnabled) return;
+    stopTTS();
+
+    // 특수문자 및 이모지 필터링
+    const cleanText = text
+      .replace(/<[^>]*>/g, '')
+      .replace(/[🚨📉👶🚆🌊🎬🎉✨📍📌ℹ️◀▶⏸⏹↺💡👥🔍]/g, '')
+      .trim();
+
+    if (!cleanText) return;
+
+    // 1차: 구글 번역 공식 TTS 오디오 스트림 시도
+    const encoded = encodeURIComponent(cleanText);
+    const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ko&q=${encoded}`;
+
     try {
-      window.speechSynthesis.cancel(); // 이전 발화 즉시 정지
-      
-      // 특수문자 및 이모지 필터링
-      const cleanText = text
-        .replace(/<[^>]*>/g, '')
-        .replace(/[🚨📉👶🚆🌊🎬🎉✨📍📌ℹ️◀▶⏸⏹↺💡👥🔍]/g, '')
-        .trim();
+      const audio = new Audio(googleTtsUrl);
+      currentAudio = audio;
 
+      audio.onended = () => {
+        currentAudio = null;
+        if (typeof onEnd === 'function') onEnd();
+      };
+
+      audio.onerror = () => {
+        // 브라우저 정책 또는 네트워크 이슈 시 Google 한국어 보이스로 fallback
+        fallbackGoogleWebSpeech(cleanText, onEnd);
+      };
+
+      audio.play().catch(() => {
+        fallbackGoogleWebSpeech(cleanText, onEnd);
+      });
+    } catch (e) {
+      fallbackGoogleWebSpeech(cleanText, onEnd);
+    }
+  }
+
+  // Google 한국어 보이스 Web Speech API fallback
+  function fallbackGoogleWebSpeech(cleanText, onEnd) {
+    if (!('speechSynthesis' in window)) {
+      if (typeof onEnd === 'function') onEnd();
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(cleanText);
       utter.lang = 'ko-KR';
-      utter.rate = 1.05; // 명확하고 듣기 편한 속도
+      utter.rate = 1.05;
       utter.pitch = 1.0;
 
-      // 브라우저에 등록된 한국어 음성 우선 선택
+      // 브라우저 내 'Google 한국어' 음성을 최우선 매칭
       const voices = window.speechSynthesis.getVoices();
-      const koVoice = voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko'));
+      const googleVoice = voices.find(v => v.lang.startsWith('ko') && v.name.toLowerCase().includes('google'));
+      const koVoice = googleVoice || voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko'));
       if (koVoice) {
         utter.voice = koVoice;
       }
 
+      utter.onend = () => {
+        if (typeof onEnd === 'function') onEnd();
+      };
+      utter.onerror = () => {
+        if (typeof onEnd === 'function') onEnd();
+      };
+
       window.speechSynthesis.speak(utter);
     } catch (e) {
-      console.warn('TTS 실행 오류:', e);
+      if (typeof onEnd === 'function') onEnd();
     }
   }
 
-  // 음성 즉시 정지
+  // 음성 즉시 정지 (오디오 및 SpeechSynthesis 모두 즉각 중단)
   function stopTTS() {
+    if (currentAudio) {
+      try {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      } catch (e) {}
+      currentAudio = null;
+    }
     if ('speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
@@ -248,9 +299,9 @@
           <span style="font-weight:800; font-size:14px; color:#1d1d1f; letter-spacing:-0.2px;">시연 자동화</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          <!-- 음성 TTS 토글 버튼 -->
-          <button id="demoTtsToggleBtn" title="음성 TTS 안내 켜기/끄기" style="background:rgba(0,122,255,0.1); border:1px solid rgba(0,122,255,0.3); border-radius:12px; font-size:11px; font-weight:700; color:#007aff; padding:3px 8px; cursor:pointer; display:flex; align-items:center; gap:3px; transition:all 0.2s;">
-            <span id="demoTtsIcon">🔊</span> <span id="demoTtsText">음성 ON</span>
+          <!-- 구글 TTS 토글 버튼 -->
+          <button id="demoTtsToggleBtn" title="구글 TTS 안내 켜기/끄기" style="background:rgba(0,122,255,0.1); border:1px solid rgba(0,122,255,0.3); border-radius:12px; font-size:11px; font-weight:700; color:#007aff; padding:3px 8px; cursor:pointer; display:flex; align-items:center; gap:3px; transition:all 0.2s;">
+            <span id="demoTtsIcon">🔊</span> <span id="demoTtsText">구글 TTS ON</span>
           </button>
           <span id="demoStepBadge" style="font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:12px; background:#e5e5ea; color:#3a3a3c;">
             READY
@@ -271,13 +322,13 @@
         원터치 자동 시연 모드
       </div>
       <div id="demoDesc" style="font-size:11.5px; color:#636366; margin-bottom:14px; line-height:1.45; min-height:34px; word-break:keep-all;">
-        버튼을 누르면 전국 지도 탐색, 지역 검색, 인프라 레이어 및 재해 상황판 연동 시나리오가 음성 TTS와 함께 순차적으로 실행됩니다.
+        버튼을 누르면 전국 지도 탐색, 지역 검색, 인프라 레이어 및 재해 상황판 연동 시나리오가 구글 TTS 안내와 함께 순차적으로 실행됩니다.
       </div>
 
       <!-- 컨트롤 버튼 영역 -->
       <div id="demoBtnGroupReady" style="display:flex; gap:6px;">
         <button id="demoStartBtn" style="flex:1; padding:9px 12px; border:none; border-radius:10px; background:#007aff; color:#fff; font-size:12.5px; font-weight:700; cursor:pointer; box-shadow:0 3px 10px rgba(0,122,255,0.3); transition:all 0.2s;">
-          ▶ 음성 자동 시연 시작
+          ▶ 구글 TTS 시연 시작
         </button>
       </div>
 
@@ -323,7 +374,7 @@
       btn.style.borderColor = 'rgba(0,122,255,0.3)';
       btn.style.color = '#007aff';
       if (icon) icon.innerText = '🔊';
-      if (text) text.innerText = '음성 ON';
+      if (text) text.innerText = '구글 TTS ON';
       if (isRunning && !isPaused && demoSteps[currentStepIndex]) {
         speakText(demoSteps[currentStepIndex].tts || demoSteps[currentStepIndex].desc);
       }
@@ -333,7 +384,7 @@
       btn.style.borderColor = 'rgba(142,142,147,0.3)';
       btn.style.color = '#8e8e93';
       if (icon) icon.innerText = '🔇';
-      if (text) text.innerText = '음성 OFF';
+      if (text) text.innerText = '구글 TTS OFF';
     }
   }
 
@@ -540,7 +591,7 @@
 
     const startBtn = document.getElementById('demoStartBtn');
     if (startBtn) {
-      startBtn.innerText = '▶ 음성 자동 시연 시작';
+      startBtn.innerText = '▶ 구글 TTS 시연 시작';
     }
 
     const badge = document.getElementById('demoStepBadge');
