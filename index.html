@@ -87,6 +87,7 @@
           <button class="layer-toggle-btn" data-layer="energy" onclick="toggleOverlayLayer('energy')"><span class="toggle-dot"></span>⚡ 에너지소외</button>
           <button class="layer-toggle-btn" data-layer="banking" onclick="toggleOverlayLayer('banking')"><span class="toggle-dot"></span>🏦 금융소외</button>
           <button class="layer-toggle-btn" data-layer="disasterRainSnow" onclick="toggleRainSnowDisaster()"><span class="toggle-dot"></span>🌊 호우/대설 특보</button>
+          <button class="layer-toggle-btn" data-layer="disasterEarthquake" onclick="toggleEarthquakeDisaster()"><span class="toggle-dot"></span>🌋 지진 경보</button>
         </div>
         <!-- 실시간 지도 반영 알림 토스트 배너 -->
         <div id="liveMapToast" class="live-map-toast"></div>
@@ -120,6 +121,18 @@
             <span class="disaster-sub-tag danger">🛑 교통 통제 4개 구간 검토</span>
             <span class="disaster-sub-tag">🚢 도서 여객선 결항</span>
             <span class="disaster-sub-tag">⛰️ 대관령·한계령 체인 의무화</span>
+          </div>
+        </div>
+        <div class="disaster-item earthquake" onclick="triggerEarthquakeDisaster()" title="클릭 시 지도에서 지진 진앙지 및 진도 영향 권역, 대피소를 즉시 표시합니다">
+          <div class="disaster-title">
+            <span style="display:flex; align-items:center; gap:5px;"><span class="disaster-pulse-dot" style="background:#ff9500;"></span>🌋 [지진 조기경보] 경북 포항·경주 일원 규모 4.8</span>
+            <span class="disaster-action-badge" style="background:#ff9500; color:#fff; border-color:#e08500;">진앙지 지도 보기 ➔</span>
+          </div>
+          <div class="disaster-desc">경북 포항 북서쪽 9km 지역 규모 4.8 지진 발생 (최대 진도 V 감지, 여진 주의)</div>
+          <div class="disaster-meta-tags">
+            <span class="disaster-sub-tag danger">⚠️ 진도 V (강한 흔들림)</span>
+            <span class="disaster-sub-tag">🏃 옥외 대피소 28개소 개방</span>
+            <span class="disaster-sub-tag">🏗️ 노후 인프라 안전점검 가동</span>
           </div>
         </div>
       </div>

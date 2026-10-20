@@ -11,7 +11,7 @@
  * 5. 13대 인프라 카테고리 필터링 (패널 버튼 & 이모지 마커)
  * 6. 지도 핀 숨기기 / 표시하기 토글
  * 7. 글래스모피즘 마커 클러스터링 시연
- * 8. 실시간 자연재해 특보 상황판 연동 (호우/대설 통제구간)
+ * 8. 실시간 지진 감지 재난알림 상황판 연동
  * 9. 좌측 패널 접기 / 펼치기 (화면 전체화)
  * 10. 실시간 동기화 상태 바 & 타이머 하이라이트
  * 11. 시연 완료 및 초기화 (원위치 복원)
@@ -134,14 +134,14 @@
       }
     },
     {
-      title: "8. 실시간 자연재해 특보 상황판",
+      title: "8. 실시간 지진 감지 재난알림",
       action: (next) => {
         if (typeof openDisasterModal === 'function') {
           openDisasterModal();
         }
         setTimeout(() => {
-          if (typeof triggerRainSnowDisaster === 'function') {
-            triggerRainSnowDisaster();
+          if (typeof triggerEarthquakeDisaster === 'function') {
+            triggerEarthquakeDisaster();
           }
           setTimeout(next, 3800);
         }, 1200);
@@ -216,7 +216,7 @@
       if (overlayLayers.transit && map.hasLayer(overlayLayers.transit.group)) toggleOverlayLayer('transit');
       if (overlayLayers.energy && map.hasLayer(overlayLayers.energy.group)) toggleOverlayLayer('energy');
       if (overlayLayers.banking && map.hasLayer(overlayLayers.banking.group)) toggleOverlayLayer('banking');
-      if (overlayLayers.disasterRainSnow && map.hasLayer(overlayLayers.disasterRainSnow.group)) toggleOverlayLayer('disasterRainSnow');
+      if (overlayLayers.disasterEarthquake && map.hasLayer(overlayLayers.disasterEarthquake.group)) toggleOverlayLayer('disasterEarthquake');
     }
 
     // 6. 검색 마커 및 26km 버퍼 원 제거

@@ -33,23 +33,3 @@ function closeModalOnBackdrop(e, id) {
     }
   }
 }
-
-/**
- * 🌊 [호우/대설 경보] 도서 및 산간 취약 지역 항목 클릭 핸들러
- */
-function handleDisasterRainSnowClick() {
-  if (typeof triggerRainSnowDisaster === 'function') {
-    triggerRainSnowDisaster();
-  }
-}
-
-/**
- * 🔥 [산불 주의보] 항목 클릭 핸들러
- */
-function handleWildfireClick() {
-  if (typeof triggerWildfireDisaster === 'function') {
-    triggerWildfireDisaster();
-  }
-}
-
-
