@@ -73,6 +73,9 @@ const TUTORIAL_STEPS = [
 ];
 
 let tutorialCurrentStep = 0;
+let tutAutoTimer = null;
+let isTutAutoPlaying = false;
+const TUT_AUTO_INTERVAL = 3500; // 자동 넘김 간격 (3.5초)
 
 /* ── 열기 / 닫기 ─────────────────────────────── */
 function openTutorial() {
@@ -84,11 +87,67 @@ function openTutorial() {
 }
 
 function closeTutorial() {
+  stopTutorialAutoPlay();
   const overlay = document.getElementById('tutorialModalOverlay');
   if (overlay) overlay.classList.remove('active');
   clearTutorialHighlight();
   // 튜토리얼 완료/닫기 시 localStorage에 기록 → 다음 방문 시 자동 표시 안 함
   try { localStorage.setItem('tutorialSeen', '1'); } catch(e) {}
+}
+
+/* ── 자동 넘김 토글 & 제어 ───────────────────────── */
+function toggleTutorialAutoPlay() {
+  if (isTutAutoPlaying) {
+    stopTutorialAutoPlay();
+  } else {
+    startTutorialAutoPlay();
+  }
+}
+
+function startTutorialAutoPlay() {
+  isTutAutoPlaying = true;
+  updateTutAutoPlayButtonUI();
+  scheduleNextTutorialStep();
+}
+
+function stopTutorialAutoPlay() {
+  isTutAutoPlaying = false;
+  if (tutAutoTimer) {
+    clearTimeout(tutAutoTimer);
+    tutAutoTimer = null;
+  }
+  updateTutAutoPlayButtonUI();
+}
+
+function updateTutAutoPlayButtonUI() {
+  const btn = document.getElementById('tutAutoPlayBtn');
+  if (!btn) return;
+  if (isTutAutoPlaying) {
+    btn.innerHTML = '⏸ 자동 멈춤';
+    btn.style.background = '#ff9500';
+    btn.style.color = '#ffffff';
+  } else {
+    btn.innerHTML = '▶ 자동 넘김';
+    btn.style.background = 'rgba(0, 122, 255, 0.12)';
+    btn.style.color = '#007aff';
+  }
+}
+
+function scheduleNextTutorialStep() {
+  if (tutAutoTimer) clearTimeout(tutAutoTimer);
+  if (!isTutAutoPlaying) return;
+
+  tutAutoTimer = setTimeout(() => {
+    if (!isTutAutoPlaying) return;
+    if (tutorialCurrentStep < TUTORIAL_STEPS.length - 1) {
+      tutorialCurrentStep++;
+      renderTutorialStep();
+      scheduleNextTutorialStep();
+    } else {
+      stopTutorialAutoPlay();
+      closeTutorial();
+    }
+  }, TUT_AUTO_INTERVAL);
 }
 
 /* 첫 방문 시 팝업 알림창으로 안내 (localStorage에 기록이 없으면 표시) */
@@ -194,6 +253,7 @@ function tutorialNext() {
   if (tutorialCurrentStep < TUTORIAL_STEPS.length - 1) {
     tutorialCurrentStep++;
     renderTutorialStep();
+    if (isTutAutoPlaying) scheduleNextTutorialStep();
   } else {
     closeTutorial();
   }
@@ -203,6 +263,7 @@ function tutorialPrev() {
   if (tutorialCurrentStep > 0) {
     tutorialCurrentStep--;
     renderTutorialStep();
+    if (isTutAutoPlaying) scheduleNextTutorialStep();
   }
 }
 

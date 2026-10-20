@@ -517,29 +517,29 @@
     }
   }
 
-  // 수동 이전 단계
+  // 수동 이전 단계 (자동 넘김 모드 유지)
   function prevStep() {
     if (!isRunning) return;
-    isPaused = true;
     stopTTS();
+    isPaused = false;
     const pauseBtn = document.getElementById('demoPauseBtn');
     if (pauseBtn) {
-      pauseBtn.innerText = "▶ 재개";
-      pauseBtn.style.background = "#34c759";
+      pauseBtn.innerText = "⏸ 일시정지";
+      pauseBtn.style.background = "#ff9500";
     }
     currentStepIndex = Math.max(0, currentStepIndex - 1);
     runStep();
   }
 
-  // 수동 다음 단계
+  // 수동 다음 단계 (자동 넘김 모드 유지)
   function nextStep() {
     if (!isRunning) return;
-    isPaused = true;
     stopTTS();
+    isPaused = false;
     const pauseBtn = document.getElementById('demoPauseBtn');
     if (pauseBtn) {
-      pauseBtn.innerText = "▶ 재개";
-      pauseBtn.style.background = "#34c759";
+      pauseBtn.innerText = "⏸ 일시정지";
+      pauseBtn.style.background = "#ff9500";
     }
     currentStepIndex = Math.min(demoSteps.length - 1, currentStepIndex + 1);
     runStep();
