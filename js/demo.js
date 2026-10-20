@@ -1,6 +1,7 @@
 /**
  * js/demo.js
  * 대한민국 인프라 소외지역 실시간 분석 지도 - 원터치 자동 시연(Demo Automation) 모듈
+ * (한국어 음성 TTS 안내 엔진 탑재)
  * 
  * 시연 시나리오:
  * 1. 전국 인프라 지도 개요 (한반도 전역 위성 & 지명 뷰)
@@ -16,11 +17,54 @@
 (function () {
   'use strict';
 
-  // 시연 시나리오 단계 정의
+  // 음성 TTS 제어 상태
+  let ttsEnabled = true;
+
+  // 음성 발화 함수 (Web Speech API)
+  function speakText(text) {
+    if (!ttsEnabled || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel(); // 이전 발화 즉시 정지
+      
+      // 특수문자 및 이모지 필터링
+      const cleanText = text
+        .replace(/<[^>]*>/g, '')
+        .replace(/[🚨📉👶🚆🌊🎬🎉✨📍📌ℹ️◀▶⏸⏹↺💡👥🔍]/g, '')
+        .trim();
+
+      const utter = new SpeechSynthesisUtterance(cleanText);
+      utter.lang = 'ko-KR';
+      utter.rate = 1.05; // 명확하고 듣기 편한 속도
+      utter.pitch = 1.0;
+
+      // 브라우저에 등록된 한국어 음성 우선 선택
+      const voices = window.speechSynthesis.getVoices();
+      const koVoice = voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko'));
+      if (koVoice) {
+        utter.voice = koVoice;
+      }
+
+      window.speechSynthesis.speak(utter);
+    } catch (e) {
+      console.warn('TTS 실행 오류:', e);
+    }
+  }
+
+  // 음성 즉시 정지
+  function stopTTS() {
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {}
+    }
+  }
+
+  // 시연 시나리오 단계 정의 (TTS 스크립트 포함)
   const demoSteps = [
     {
       title: "1. 전국 인프라 지도 개요",
       desc: "초고화질 위성 베이스맵과 한국어 지명 라벨이 탑재된 대한민국 전역 지도를 확인합니다.",
+      tts: "1단계, 전국 인프라 지도 개요입니다. 위성 영상과 한국어 지명이 적용된 대한민국 전역 지도를 확인합니다.",
       action: (next) => {
         if (typeof closeDisasterModal === 'function') closeDisasterModal();
         if (typeof closeSearchAlert === 'function') closeSearchAlert();
@@ -29,12 +73,13 @@
         if (window.map) {
           window.map.flyTo([36.2, 127.8], 7, { duration: 1.5 });
         }
-        setTimeout(next, 3000);
+        setTimeout(next, 3800);
       }
     },
     {
       title: "2. 행정구역 실시간 검색 (강원 속초시)",
       desc: "검색창에 '속초시'를 입력하여 26km 분석 반경 버퍼와 13대 지표 팝업을 호출합니다.",
+      tts: "2단계, 행정구역 검색입니다. 속초시를 검색하여 26킬로미터 분석 반경과 13대 인프라 지표를 실시간 조회합니다.",
       action: (next) => {
         const input = document.getElementById('searchInput');
         if (input) {
@@ -49,13 +94,14 @@
           if (typeof executeSearchButton === 'function') {
             executeSearchButton();
           }
-          setTimeout(next, 3800);
-        }, 1000);
+          setTimeout(next, 4500);
+        }, 1200);
       }
     },
     {
       title: "3. 초고위험 소외지역 분석 (경북 의성군)",
       desc: "인구소멸위험지수가 가장 높은 경북 의성군으로 이동하여 의료·문화 결핍 지표를 진단합니다.",
+      tts: "3단계, 초고위험 소외지역 분석입니다. 소멸위험지수가 가장 높은 경북 의성군으로 이동하여 인프라 결핍을 진단합니다.",
       action: (next) => {
         const input = document.getElementById('searchInput');
         if (input) {
@@ -64,12 +110,13 @@
         if (typeof executeSearchButton === 'function') {
           executeSearchButton();
         }
-        setTimeout(next, 4000);
+        setTimeout(next, 4800);
       }
     },
     {
       title: "4. 인프라 분석 레이어 시각화 (분만공백 & 교통단절)",
       desc: "지도 상단 빠른 토글에서 분만공백(분만실 1시간 초과) 및 교통단절 취약권역을 투사합니다.",
+      tts: "4단계, 전문 인프라 레이어 시각화입니다. 분만공백과 대중교통 단절 취약권역을 지도에 투사합니다.",
       action: (next) => {
         if (window.map) {
           window.map.flyTo([36.0, 128.2], 8, { duration: 1.2 });
@@ -80,8 +127,8 @@
             toggleOverlayLayer('maternal'); // 분만공백 ON
             setTimeout(() => {
               toggleOverlayLayer('transit'); // 교통단절 ON
-              setTimeout(next, 3800);
-            }, 1200);
+              setTimeout(next, 4500);
+            }, 1500);
           } else {
             next();
           }
@@ -91,16 +138,18 @@
     {
       title: "5. 핀 클러스터 및 광역 뷰 시연",
       desc: "지도를 줌아웃하여 밀집된 인프라 마커들이 iOS 글래스모피즘 클러스터로 통합되는 모습을 확인합니다.",
+      tts: "5단계, 핀 클러스터 시연입니다. 지도를 축소하여 밀집된 마커들이 글래스모피즘 클러스터로 통합되는 모습을 확인합니다.",
       action: (next) => {
         if (window.map) {
           window.map.flyTo([36.3, 127.8], 7, { duration: 1.5 });
         }
-        setTimeout(next, 3500);
+        setTimeout(next, 4200);
       }
     },
     {
       title: "6. 실시간 자연재해 특보 상황판 연동",
       desc: "재해 상황판을 오픈하고 도서·산간 호우/대설 통제구간 및 여객선 결항 정보를 지도에 즉시 표시합니다.",
+      tts: "6단계, 실시간 자연재해 특보 연동입니다. 호우 대설 통제구간 및 여객선 결항 정보를 지도에 즉시 표시합니다.",
       action: (next) => {
         if (typeof openDisasterModal === 'function') {
           openDisasterModal();
@@ -109,20 +158,21 @@
           if (typeof triggerRainSnowDisaster === 'function') {
             triggerRainSnowDisaster();
           }
-          setTimeout(next, 4200);
-        }, 1500);
+          setTimeout(next, 4800);
+        }, 1600);
       }
     },
     {
       title: "7. 13대 소외지역 패널 컨트롤",
       desc: "좌측 사이드바 패널을 원터치 핸들로 접고 펼치며 지도 중심의 몰입감 높은 뷰를 제공합니다.",
+      tts: "7단계, 소외지역 진단 패널 제어입니다. 좌측 패널을 원터치 핸들로 접고 펼칠 수 있습니다.",
       action: (next) => {
         if (typeof toggleSidebarPanel === 'function') {
           toggleSidebarPanel(); // 접기
           setTimeout(() => {
             toggleSidebarPanel(); // 다시 펼치기
-            setTimeout(next, 3000);
-          }, 1500);
+            setTimeout(next, 3800);
+          }, 1800);
         } else {
           next();
         }
@@ -131,6 +181,7 @@
     {
       title: "8. 시연 완료 및 초기화",
       desc: "자동 시연이 성공적으로 완료되었습니다. 대한민국 전역 지도로 시점을 원위치합니다.",
+      tts: "모든 시연이 완료되었습니다. 전국 지도로 복귀합니다. 원하시는 지역을 자유롭게 탐색해 보세요.",
       action: (next) => {
         if (typeof closeDisasterModal === 'function') {
           closeDisasterModal();
@@ -154,7 +205,7 @@
         const input = document.getElementById('searchInput');
         if (input) input.value = '';
 
-        setTimeout(next, 2500);
+        setTimeout(next, 3000);
       }
     }
   ];
@@ -162,7 +213,7 @@
   let currentStepIndex = 0;
   let isRunning = false;
   let isPaused = false;
-  let stepTimeoutId = null;
+  let isMinimized = false;
 
   // 플로팅 시연 컨트롤러 UI 생성
   function createDemoControllerUI() {
@@ -176,10 +227,10 @@
       bottom: 24px;
       right: 24px;
       z-index: 10000;
-      background: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.90);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.65);
       border-radius: 18px;
       padding: 16px 20px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -197,6 +248,10 @@
           <span style="font-weight:800; font-size:14px; color:#1d1d1f; letter-spacing:-0.2px;">시연 자동화</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
+          <!-- 음성 TTS 토글 버튼 -->
+          <button id="demoTtsToggleBtn" title="음성 TTS 안내 켜기/끄기" style="background:rgba(0,122,255,0.1); border:1px solid rgba(0,122,255,0.3); border-radius:12px; font-size:11px; font-weight:700; color:#007aff; padding:3px 8px; cursor:pointer; display:flex; align-items:center; gap:3px; transition:all 0.2s;">
+            <span id="demoTtsIcon">🔊</span> <span id="demoTtsText">음성 ON</span>
+          </button>
           <span id="demoStepBadge" style="font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:12px; background:#e5e5ea; color:#3a3a3c;">
             READY
           </span>
@@ -216,13 +271,13 @@
         원터치 자동 시연 모드
       </div>
       <div id="demoDesc" style="font-size:11.5px; color:#636366; margin-bottom:14px; line-height:1.45; min-height:34px; word-break:keep-all;">
-        버튼을 누르면 전국 지도 탐색, 지역 검색, 인프라 레이어 및 재해 상황판 연동 시나리오가 순차적으로 실행됩니다.
+        버튼을 누르면 전국 지도 탐색, 지역 검색, 인프라 레이어 및 재해 상황판 연동 시나리오가 음성 TTS와 함께 순차적으로 실행됩니다.
       </div>
 
       <!-- 컨트롤 버튼 영역 -->
       <div id="demoBtnGroupReady" style="display:flex; gap:6px;">
         <button id="demoStartBtn" style="flex:1; padding:9px 12px; border:none; border-radius:10px; background:#007aff; color:#fff; font-size:12.5px; font-weight:700; cursor:pointer; box-shadow:0 3px 10px rgba(0,122,255,0.3); transition:all 0.2s;">
-          ▶ 자동 시연 시작
+          ▶ 음성 자동 시연 시작
         </button>
       </div>
 
@@ -251,10 +306,38 @@
     document.getElementById('demoPrevBtn').addEventListener('click', prevStep);
     document.getElementById('demoNextBtn').addEventListener('click', nextStep);
     document.getElementById('demoMinimizeBtn').addEventListener('click', toggleMinimizeWidget);
+    document.getElementById('demoTtsToggleBtn').addEventListener('click', toggleTts);
+  }
+
+  // TTS 토글 기능
+  function toggleTts() {
+    ttsEnabled = !ttsEnabled;
+    const btn = document.getElementById('demoTtsToggleBtn');
+    const icon = document.getElementById('demoTtsIcon');
+    const text = document.getElementById('demoTtsText');
+
+    if (!btn) return;
+
+    if (ttsEnabled) {
+      btn.style.background = 'rgba(0,122,255,0.1)';
+      btn.style.borderColor = 'rgba(0,122,255,0.3)';
+      btn.style.color = '#007aff';
+      if (icon) icon.innerText = '🔊';
+      if (text) text.innerText = '음성 ON';
+      if (isRunning && !isPaused && demoSteps[currentStepIndex]) {
+        speakText(demoSteps[currentStepIndex].tts || demoSteps[currentStepIndex].desc);
+      }
+    } else {
+      stopTTS();
+      btn.style.background = 'rgba(142,142,147,0.12)';
+      btn.style.borderColor = 'rgba(142,142,147,0.3)';
+      btn.style.color = '#8e8e93';
+      if (icon) icon.innerText = '🔇';
+      if (text) text.innerText = '음성 OFF';
+    }
   }
 
   // 위젯 최소화 / 복원 토글
-  let isMinimized = false;
   function toggleMinimizeWidget() {
     const widget = document.getElementById('demoControlWidget');
     if (!widget) return;
@@ -294,7 +377,7 @@
       gap: 6px;
       transition: all 0.25s ease;
     `;
-    miniPill.innerHTML = `🎬 시연 모드 ${isRunning ? `(${currentStepIndex + 1}/${demoSteps.length})` : ''}`;
+    miniPill.innerHTML = `🎬 시연 모드 ${ttsEnabled ? '🔊' : '🔇'} ${isRunning ? `(${currentStepIndex + 1}/${demoSteps.length})` : ''}`;
     miniPill.addEventListener('click', () => {
       toggleMinimizeWidget();
     });
@@ -352,6 +435,9 @@
     const descEl = document.getElementById('demoDesc');
     if (descEl) descEl.innerText = step.desc;
 
+    // 한국어 음성 TTS 재생
+    speakText(step.tts || step.desc);
+
     // 단계 액션 실행
     step.action(() => {
       if (isRunning && !isPaused) {
@@ -366,6 +452,7 @@
     const pauseBtn = document.getElementById('demoPauseBtn');
     if (!isPaused) {
       isPaused = true;
+      stopTTS();
       pauseBtn.innerText = "▶ 재개";
       pauseBtn.style.background = "#34c759";
       const descEl = document.getElementById('demoDesc');
@@ -383,6 +470,7 @@
   function prevStep() {
     if (!isRunning) return;
     isPaused = true;
+    stopTTS();
     const pauseBtn = document.getElementById('demoPauseBtn');
     if (pauseBtn) {
       pauseBtn.innerText = "▶ 재개";
@@ -396,6 +484,7 @@
   function nextStep() {
     if (!isRunning) return;
     isPaused = true;
+    stopTTS();
     const pauseBtn = document.getElementById('demoPauseBtn');
     if (pauseBtn) {
       pauseBtn.innerText = "▶ 재개";
@@ -434,6 +523,8 @@
 
     const descEl = document.getElementById('demoDesc');
     if (descEl) descEl.innerText = '전국 인프라 소외지역 분석 플랫폼의 핵심 기능 시연이 끝났습니다. 자유롭게 탐색해보세요!';
+
+    speakText('모든 시연이 성공적으로 완료되었습니다. 대한민국 인프라 분석 지도를 자유롭게 탐색해 보세요.');
   }
 
   // 시연 강제 종료
@@ -442,14 +533,14 @@
     isPaused = false;
     currentStepIndex = 0;
 
-    if (stepTimeoutId) clearTimeout(stepTimeoutId);
+    stopTTS();
 
     document.getElementById('demoBtnGroupReady').style.display = 'flex';
     document.getElementById('demoBtnGroupRunning').style.display = 'none';
 
     const startBtn = document.getElementById('demoStartBtn');
     if (startBtn) {
-      startBtn.innerText = '▶ 자동 시연 시작';
+      startBtn.innerText = '▶ 음성 자동 시연 시작';
     }
 
     const badge = document.getElementById('demoStepBadge');
@@ -466,13 +557,20 @@
     if (titleEl) titleEl.innerText = '시연이 종료되었습니다';
 
     const descEl = document.getElementById('demoDesc');
-    if (descEl) descEl.innerText = '언제든 버튼을 눌러 자동 시연을 다시 시작하실 수 있습니다.';
+    if (descEl) descEl.innerText = '언제든 버튼을 눌러 음성 자동 시연을 다시 시작하실 수 있습니다.';
 
     // 지도 및 모달 원위치
     if (typeof closeDisasterModal === 'function') closeDisasterModal();
     if (window.map) {
       window.map.flyTo([36.1, 127.8], 7.2, { duration: 1.5 });
     }
+  }
+
+  // 브라우저 보이스 로드 사전 초기화
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.getVoices();
+    };
   }
 
   // 전역 API 노출
