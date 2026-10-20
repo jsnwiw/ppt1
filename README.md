@@ -44,12 +44,17 @@
    - 데스크톱/태블릿: 좌측 13대 진단 패널 접기/펼치기 (`◀/▶` 핸들)
    - 모바일: `[🗺️ 지도 화면]`과 `[📋 13대 진단 패널]` 원터치 뷰 스위처 탭
 
+7. **🎬 원터치 자동 시연(Demo Automation) 모드**
+   - 상단 헤더의 `🎬 자동 시연` 버튼 클릭 시 8단계 자동 시연 시나리오 순차 재생
+   - 전국 지도 조망 ➔ 속초시 검색 및 버퍼 투사 ➔ 경북 의성군 소멸위험 분석 ➔ 분만공백·교통단절 레이어 시각화 ➔ 핀 클러스터링 ➔ 실시간 자연재해 특보 연동 ➔ 패널 제어 ➔ 초기화
+   - 일시정지(⏸), 재개(▶), 이전/다음 단계(⏮/⏭), 최소화 플로팅 알약 버튼 제공
+
 ---
 
 ## 🌐 라이브 배포 주소
 
-- **클라우드 서비스 URL**: [https://jsnwiw.github.io/NEM_project/](https://jsnwiw.github.io/NEM_project/)
-- **GitHub 저장소**: [https://github.com/jsnwiw/NEM_project](https://github.com/jsnwiw/NEM_project)
+- **클라우드 서비스 URL**: [https://jsnwiw.github.io/ppt1/](https://jsnwiw.github.io/ppt1/)
+- **GitHub 저장소**: [https://github.com/jsnwiw/ppt1](https://github.com/jsnwiw/ppt1)
 
 ---
 
