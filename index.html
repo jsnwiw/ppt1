@@ -14,15 +14,15 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <!-- iOS Glassmorphism 스타일시트 -->
-  <link rel="stylesheet" href="css/style.css?v=20261020_1" />
+  <!-- Glassmorphism 스타일시트 -->
+  <link rel="stylesheet" href="css/style.css?v=20261020_v2" />
 </head>
 <body>
 
   <div class="glass-phone-shell">
     <!-- 상단 헤더 -->
     <header class="glass-header">
-      <div class="brand-ios">
+      <div class="brand-logo">
         <div class="sf-icon">🛰️</div>
         <div class="brand-text">
           <h1>대한민국 인프라 소외지역 분석</h1>
@@ -39,10 +39,10 @@
           <input type="text" id="searchInput" class="glass-input" placeholder="전국 모든 행정구역 검색 (예: 서울, 이천, 수원, 부산, 제주)..." autocomplete="off" oninput="handleSearchInput(event)" />
           <div id="autocompleteList" class="autocomplete-list"></div>
         </div>
-        <button class="ios-btn btn-apple-blue" onclick="executeSearchButton()">검색</button>
-        <button class="ios-btn btn-apple-danger" onclick="openDisasterModal()"><span class="disaster-pulse-dot"></span>🚨 재해</button>
-        <button class="ios-btn btn-apple-blue" onclick="openTutorial()">ℹ️ 사용방법</button>
-        <button class="ios-btn btn-apple-blue" onclick="startInfrastructureAutoDemo()" title="원터치 자동 시연 모드 실행">🎬 자동 시연</button>
+        <button class="glass-btn btn-apple-blue" onclick="executeSearchButton()">검색</button>
+        <button class="glass-btn btn-apple-danger" onclick="openDisasterModal()"><span class="disaster-pulse-dot"></span>🚨 재해</button>
+        <button class="glass-btn btn-apple-blue" onclick="openTutorial()">ℹ️ 사용방법</button>
+        <button class="glass-btn btn-apple-blue" onclick="startInfrastructureAutoDemo()" title="원터치 자동 시연 모드 실행">🎬 자동 시연</button>
       </div>
     </header>
 
@@ -134,7 +134,7 @@
       <p class="alert-message" id="searchAlertMessage"></p>
       <div class="alert-suggestions" id="searchAlertSuggestions"></div>
       <div class="alert-actions">
-        <button class="ios-btn btn-apple-blue" style="width: 100%; justify-content: center;" onclick="closeSearchAlert()">확인</button>
+        <button class="glass-btn btn-apple-blue" style="width: 100%; justify-content: center;" onclick="closeSearchAlert()">확인</button>
       </div>
     </div>
   </div>
@@ -160,8 +160,8 @@
       </div>
       <!-- 네비게이션 -->
       <div class="tutorial-nav">
-        <button class="ios-btn tutorial-nav-btn" id="tutPrevBtn" onclick="tutorialPrev()">◀ 이전</button>
-        <button class="ios-btn btn-apple-blue tutorial-nav-btn" id="tutNextBtn" onclick="tutorialNext()">다음 ▶</button>
+        <button class="glass-btn tutorial-nav-btn" id="tutPrevBtn" onclick="tutorialPrev()">◀ 이전</button>
+        <button class="glass-btn btn-apple-blue tutorial-nav-btn" id="tutNextBtn" onclick="tutorialNext()">다음 ▶</button>
       </div>
     </div>
   </div>
