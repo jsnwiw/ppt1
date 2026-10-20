@@ -4,18 +4,18 @@
  * (구글 TTS 음성 나레이션 & 전 기능 자동 완결 시연 엔진)
  * 
  * 시연 시나리오 (총 12단계 전 기능 완전 시연):
- * 1. 전국 인프라 지도 개요 (Esri 초고화질 위성 & 한국어 지명 라벨)
- * 2. 실시간 행정구역 검색 (강원 속초시 검색, 26km 버퍼 원, 13대 지표 팝업)
- * 3. 초고위험 소외지역 심층 분석 (경북 의성군 소멸위험 & 결핍 진단)
- * 4. 전문 인프라 7대 분석 레이어 시각화 (응급사각, 분만공백, 교통단절, 에너지소외)
- * 5. 13대 인프라 카테고리 필터링 (사이드바 인프라 버튼 클릭 & 이모지 마커)
- * 6. 핀 숨기기 / 표시하기 토글 (결핍 권역 버퍼 원 단독 시각화)
- * 7. 글래스모피즘 마커 클러스터링 (핀 겹침 방지 및 줌 연동)
- * 8. 실시간 자연재해/기상특보 상황판 연동 (호우/대설 통제구간 지도 투사)
- * 9. 사용방법(튜토리얼) 가이드 시스템 소개 (인앱 가이드 워크스루)
- * 10. 반응형 인터페이스 & 좌측 패널 접기/펼치기 (화면 극대화)
- * 11. 실시간 트래픽 스트림 & 10분 동기화 타이머 안내
- * 12. 풀코스 시연 완료 및 초기화
+ * 1. 전국 인프라 지도 베이스맵 개요 (Esri 초고화질 위성 & 한국어 지명 라벨)
+ * 2. 실시간 행정구역 검색 & 26km 버퍼 (강원 속초시 검색, 버퍼 원, 13대 지표 팝업)
+ * 3. 초고위험 소외지역 심층 분석 (경북 의성군 소멸위험 0.12 & 패널 연동 진단)
+ * 4. 전문 인프라 7대 분석 레이어 다중 시각화 (응급사각, 분만공백, 교통단절, 에너지소외)
+ * 5. 13대 인프라 카테고리 필터링 (패널 인프라 버튼 클릭, 지도 반영 & 전용 이모지 마커)
+ * 6. 지도 핀 숨기기 / 표시하기 토글 (결핍 권역 버퍼 원 단독 시각화 & 복원)
+ * 7. 글래스모피즘 마커 클러스터링 (핀 겹침 방지 및 줌 연동 클러스터 결합)
+ * 8. 실시간 자연재해 특보 상황판 연동 (재해 모달 ➔ 호우/대설 통제구간 지도 투사)
+ * 9. 사용방법(튜토리얼) 가이드 시스템 소개 (인앱 가이드 워크스루 & 자동 넘김)
+ * 10. 반응형 인터페이스 & 좌측 패널 접기/펼치기 (지도 뷰 전체화면 극대화)
+ * 11. 실시간 트래픽 스트림 & 10분 동기화 타이머 안내 (상단 LIVE 상태 바)
+ * 12. 풀코스 시연 완료 및 초기화 (모든 레이어/마커 원위치 복원)
  */
 
 (function () {
@@ -123,6 +123,7 @@
         if (typeof closeTutorial === 'function') closeTutorial();
 
         if (window.map) {
+          window.map.closePopup();
           window.map.flyTo([36.2, 127.8], 7.1, { duration: 1.5 });
         }
         setTimeout(next, 4200);
@@ -152,15 +153,18 @@
     },
     {
       title: "3. 초고위험 소외지역 심층 분석 (경북 의성군)",
-      desc: "인구소멸위험지수가 0.14로 가장 심각한 경북 의성군으로 이동하여 분만실 부재, 의료 접근성 등 핵심 결핍 지표를 진단합니다.",
+      desc: "인구소멸위험지수가 0.14로 가장 심각한 경북 의성군으로 이동하여 분만실 부재, 의료 접근성 등 핵심 결핍 지표와 좌측 진단 패널을 확인합니다.",
       tts: "3단계, 초고위험 소외지역 분석입니다. 소멸위험지수가 가장 높은 경북 의성군으로 이동하여 13대 결핍 지표를 정밀 진단합니다.",
       action: (next) => {
-        const input = document.getElementById('searchInput');
-        if (input) {
-          input.value = "경북 의성군";
-        }
-        if (typeof executeSearchButton === 'function') {
-          executeSearchButton();
+        if (typeof allRegionsComprehensiveData !== 'undefined') {
+          const uiseongIdx = allRegionsComprehensiveData.findIndex(r => r.name.includes('의성'));
+          if (uiseongIdx !== -1 && typeof selectAndInspectRegion === 'function') {
+            selectAndInspectRegion(uiseongIdx, true);
+          } else if (typeof executeSearchButton === 'function') {
+            const input = document.getElementById('searchInput');
+            if (input) input.value = "경북 의성군";
+            executeSearchButton();
+          }
         }
         setTimeout(next, 4800);
       }
@@ -198,9 +202,10 @@
         if (typeof toggleInfraOnMap === 'function') {
           toggleInfraOnMap('🚨 응급의료');
           setTimeout(() => {
-            toggleInfraOnMap('🚆 교통/철도');
+            toggleInfraOnMap('🚨 응급의료'); // 해제
+            toggleInfraOnMap('🚆 교통/철도'); // 교통철도 반영
             setTimeout(next, 4500);
-          }, 1500);
+          }, 1800);
         } else {
           next();
         }
@@ -303,30 +308,64 @@
       desc: "모든 핵심 기능 시연이 성공적으로 완료되었습니다! 지도를 초기 상태로 복구하며, 전국 229개 지역을 자유롭게 분석해 보세요.",
       tts: "대한민국 인프라 소외지역 분석 플랫폼의 모든 기능 시연이 완료되었습니다. 전국 지도를 자유롭게 탐색해 보세요.",
       action: (next) => {
-        // 열린 모달 정리
-        if (typeof closeDisasterModal === 'function') closeDisasterModal();
-        if (typeof closeTutorial === 'function') closeTutorial();
-
-        // 추가 레이어 정리
-        if (typeof overlayLayers !== 'undefined') {
-          if (overlayLayers.maternal && map.hasLayer(overlayLayers.maternal.group)) toggleOverlayLayer('maternal');
-          if (overlayLayers.transit && map.hasLayer(overlayLayers.transit.group)) toggleOverlayLayer('transit');
-          if (overlayLayers.energy && map.hasLayer(overlayLayers.energy.group)) toggleOverlayLayer('energy');
-          if (overlayLayers.disasterRainSnow && map.hasLayer(overlayLayers.disasterRainSnow.group)) toggleOverlayLayer('disasterRainSnow');
-        }
-
-        // 카메라 원위치
-        if (window.map) {
-          window.map.flyTo([36.1, 127.8], 7.2, { duration: 1.8 });
-        }
-
-        const input = document.getElementById('searchInput');
-        if (input) input.value = '';
-
+        cleanupDemoState();
         setTimeout(next, 3000);
       }
     }
   ];
+
+  // 시연 상태 정리 및 원위치 복원 함수
+  function cleanupDemoState() {
+    // 1. 열린 모달 닫기
+    if (typeof closeDisasterModal === 'function') closeDisasterModal();
+    if (typeof closeTutorial === 'function') closeTutorial();
+    if (typeof closeSearchAlert === 'function') closeSearchAlert();
+
+    // 2. 팝업 닫기
+    if (window.map) {
+      window.map.closePopup();
+    }
+
+    // 3. 인프라 버튼 필터 해제
+    if (typeof activeInfraFilterKeys !== 'undefined' && activeInfraFilterKeys.size > 0) {
+      const keys = Array.from(activeInfraFilterKeys);
+      keys.forEach(k => {
+        if (typeof toggleInfraOnMap === 'function') toggleInfraOnMap(k);
+      });
+    }
+
+    // 4. 지도 핀 표시 복원
+    if (typeof areCategoryPinsVisible !== 'undefined' && !areCategoryPinsVisible) {
+      if (typeof showCategoryMarkersOnMap === 'function') showCategoryMarkersOnMap();
+    }
+
+    // 5. 추가된 오버레이 레이어 끄기
+    if (typeof overlayLayers !== 'undefined') {
+      if (overlayLayers.maternal && map.hasLayer(overlayLayers.maternal.group)) toggleOverlayLayer('maternal');
+      if (overlayLayers.transit && map.hasLayer(overlayLayers.transit.group)) toggleOverlayLayer('transit');
+      if (overlayLayers.energy && map.hasLayer(overlayLayers.energy.group)) toggleOverlayLayer('energy');
+      if (overlayLayers.banking && map.hasLayer(overlayLayers.banking.group)) toggleOverlayLayer('banking');
+      if (overlayLayers.disasterRainSnow && map.hasLayer(overlayLayers.disasterRainSnow.group)) toggleOverlayLayer('disasterRainSnow');
+    }
+
+    // 6. 검색 마커 및 26km 버퍼 원 제거
+    if (typeof liveRegionBufferGroup !== 'undefined') {
+      liveRegionBufferGroup.clearLayers();
+    }
+    if (typeof currentMarker !== 'undefined' && currentMarker && window.map) {
+      map.removeLayer(currentMarker);
+      currentMarker = null;
+    }
+
+    // 7. 검색창 초기화
+    const input = document.getElementById('searchInput');
+    if (input) input.value = '';
+
+    // 8. 카메라 원위치
+    if (window.map) {
+      window.map.flyTo([36.1, 127.8], 7.2, { duration: 1.8 });
+    }
+  }
 
   let currentStepIndex = 0;
   let isRunning = false;
@@ -652,6 +691,7 @@
     currentStepIndex = 0;
 
     stopTTS();
+    cleanupDemoState();
 
     document.getElementById('demoBtnGroupReady').style.display = 'flex';
     document.getElementById('demoBtnGroupRunning').style.display = 'none';
@@ -676,13 +716,6 @@
 
     const descEl = document.getElementById('demoDesc');
     if (descEl) descEl.innerText = '언제든 버튼을 눌러 풀코스 자동 시연을 다시 시작하실 수 있습니다.';
-
-    // 지도 및 모달 원위치
-    if (typeof closeDisasterModal === 'function') closeDisasterModal();
-    if (typeof closeTutorial === 'function') closeTutorial();
-    if (window.map) {
-      window.map.flyTo([36.1, 127.8], 7.2, { duration: 1.5 });
-    }
   }
 
   // 전역 API 노출
