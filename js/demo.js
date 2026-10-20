@@ -1,122 +1,29 @@
 /**
  * js/demo.js
- * 대한민국 인프라 소외지역 실시간 분석 지도 - 풀코스(Full-Course) 자동 시연 모듈
- * (구글 TTS 음성 나레이션 & 전 기능 자동 완결 시연 엔진)
+ * 대한민국 인프라 소외지역 실시간 분석 지도 - 무음 컴팩트 자동 시연(Silent Compact Demo) 모듈
+ * (기능 설명 나레이션 및 설명 텍스트 제거 / 순수 지도 인터랙션 중심 자동 시연)
  * 
- * 시연 시나리오 (총 12단계 전 기능 완전 시연):
- * 1. 전국 인프라 지도 베이스맵 개요 (Esri 초고화질 위성 & 한국어 지명 라벨)
- * 2. 실시간 행정구역 검색 & 26km 버퍼 (강원 속초시 검색, 버퍼 원, 13대 지표 팝업)
- * 3. 초고위험 소외지역 심층 분석 (경북 의성군 소멸위험 0.12 & 패널 연동 진단)
- * 4. 전문 인프라 7대 분석 레이어 다중 시각화 (응급사각, 분만공백, 교통단절, 에너지소외)
- * 5. 13대 인프라 카테고리 필터링 (패널 인프라 버튼 클릭, 지도 반영 & 전용 이모지 마커)
- * 6. 지도 핀 숨기기 / 표시하기 토글 (결핍 권역 버퍼 원 단독 시각화 & 복원)
- * 7. 글래스모피즘 마커 클러스터링 (핀 겹침 방지 및 줌 연동 클러스터 결합)
- * 8. 실시간 자연재해 특보 상황판 연동 (재해 모달 ➔ 호우/대설 통제구간 지도 투사)
- * 9. 사용방법(튜토리얼) 가이드 시스템 소개 (인앱 가이드 워크스루 & 자동 넘김)
- * 10. 반응형 인터페이스 & 좌측 패널 접기/펼치기 (지도 뷰 전체화면 극대화)
- * 11. 실시간 트래픽 스트림 & 10분 동기화 타이머 안내 (상단 LIVE 상태 바)
- * 12. 풀코스 시연 완료 및 초기화 (모든 레이어/마커 원위치 복원)
+ * 시연 시나리오:
+ * 1. 전국 인프라 지도 베이스맵 개요
+ * 2. 실시간 행정구역 검색 (강원 속초시 26km 버퍼 원 & 팝업)
+ * 3. 초고위험 소외지역 심층 분석 (경북 의성군 이동 & 패널 진단)
+ * 4. 전문 인프라 레이어 다중 투사 (분만공백, 교통단절, 에너지소외)
+ * 5. 13대 인프라 카테고리 필터링 (패널 버튼 & 이모지 마커)
+ * 6. 지도 핀 숨기기 / 표시하기 토글
+ * 7. 글래스모피즘 마커 클러스터링 시연
+ * 8. 실시간 자연재해 특보 상황판 연동 (호우/대설 통제구간)
+ * 9. 좌측 패널 접기 / 펼치기 (화면 전체화)
+ * 10. 실시간 동기화 상태 바 & 타이머 하이라이트
+ * 11. 시연 완료 및 초기화 (원위치 복원)
  */
 
 (function () {
   'use strict';
 
-  // 구글 TTS 제어 상태
-  let ttsEnabled = true;
-  let currentAudio = null;
-
-  // 구글 TTS 음성 발화 함수
-  function speakText(text, onEnd) {
-    if (!ttsEnabled) {
-      if (typeof onEnd === 'function') onEnd();
-      return;
-    }
-    stopTTS();
-
-    const cleanText = text
-      .replace(/<[^>]*>/g, '')
-      .replace(/[🚨📉👶🚆🌊🎬🎉✨📍📌ℹ️◀▶⏸⏹↺💡👥🔍⚡🏦🔥🚢⛰️]/g, '')
-      .trim();
-
-    if (!cleanText) {
-      if (typeof onEnd === 'function') onEnd();
-      return;
-    }
-
-    // 1차: 구글 번역 공식 TTS 오디오 스트림 시도
-    const encoded = encodeURIComponent(cleanText);
-    const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ko&q=${encoded}`;
-
-    try {
-      const audio = new Audio(googleTtsUrl);
-      currentAudio = audio;
-
-      audio.onended = () => {
-        currentAudio = null;
-        if (typeof onEnd === 'function') onEnd();
-      };
-
-      audio.onerror = () => {
-        fallbackGoogleWebSpeech(cleanText, onEnd);
-      };
-
-      audio.play().catch(() => {
-        fallbackGoogleWebSpeech(cleanText, onEnd);
-      });
-    } catch (e) {
-      fallbackGoogleWebSpeech(cleanText, onEnd);
-    }
-  }
-
-  // Google 한국어 보이스 Web Speech API fallback
-  function fallbackGoogleWebSpeech(cleanText, onEnd) {
-    if (!('speechSynthesis' in window)) {
-      if (typeof onEnd === 'function') onEnd();
-      return;
-    }
-    try {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(cleanText);
-      utter.lang = 'ko-KR';
-      utter.rate = 1.05;
-      utter.pitch = 1.0;
-
-      const voices = window.speechSynthesis.getVoices();
-      const googleVoice = voices.find(v => v.lang.startsWith('ko') && v.name.toLowerCase().includes('google'));
-      const koVoice = googleVoice || voices.find(v => v.lang === 'ko-KR' || v.lang.startsWith('ko'));
-      if (koVoice) utter.voice = koVoice;
-
-      utter.onend = () => { if (typeof onEnd === 'function') onEnd(); };
-      utter.onerror = () => { if (typeof onEnd === 'function') onEnd(); };
-
-      window.speechSynthesis.speak(utter);
-    } catch (e) {
-      if (typeof onEnd === 'function') onEnd();
-    }
-  }
-
-  // 음성 즉시 정지
-  function stopTTS() {
-    if (currentAudio) {
-      try {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-      } catch (e) {}
-      currentAudio = null;
-    }
-    if ('speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.cancel();
-      } catch (e) {}
-    }
-  }
-
-  // 전체 핵심 기능 12단계 시연 시나리오 정의
+  // 시연 시나리오 단계 정의 (설명 나레이션 없이 순수 기능 액션 실행)
   const demoSteps = [
     {
-      title: "1. 전국 인프라 지도 베이스맵 개요",
-      desc: "초고화질 위성 영상과 도로선이 배제된 선명한 한국어 행정 지명 라벨이 상시 가동되는 대한민국 전역 지도를 확인합니다.",
-      tts: "1단계, 전국 인프라 지도 개요입니다. 초고화질 위성 영상과 선명한 한국어 지명이 적용된 대한민국 전역 지도를 확인합니다.",
+      title: "1. 전국 베이스맵 개요",
       action: (next) => {
         if (typeof closeDisasterModal === 'function') closeDisasterModal();
         if (typeof closeSearchAlert === 'function') closeSearchAlert();
@@ -124,15 +31,13 @@
 
         if (window.map) {
           window.map.closePopup();
-          window.map.flyTo([36.2, 127.8], 7.1, { duration: 1.5 });
+          window.map.flyTo([36.2, 127.8], 7.1, { duration: 1.2 });
         }
-        setTimeout(next, 4200);
+        setTimeout(next, 3200);
       }
     },
     {
-      title: "2. 전국 229개 시군구 실시간 검색 & 26km 버퍼",
-      desc: "검색창에 '속초시'를 입력하여 26km 집중 분석 버퍼 원과 13대 핵심 인프라 결핍 진단 팝업을 즉시 호출합니다.",
-      tts: "2단계, 실시간 행정구역 검색입니다. 속초시를 검색하여 26킬로미터 분석 반경과 13대 인프라 진단 팝업을 호출합니다.",
+      title: "2. 행정구역 검색 & 26km 버퍼 (속초시)",
       action: (next) => {
         const input = document.getElementById('searchInput');
         if (input) {
@@ -147,14 +52,12 @@
           if (typeof executeSearchButton === 'function') {
             executeSearchButton();
           }
-          setTimeout(next, 4800);
-        }, 1200);
+          setTimeout(next, 3800);
+        }, 800);
       }
     },
     {
-      title: "3. 초고위험 소외지역 심층 분석 (경북 의성군)",
-      desc: "인구소멸위험지수가 0.14로 가장 심각한 경북 의성군으로 이동하여 분만실 부재, 의료 접근성 등 핵심 결핍 지표와 좌측 진단 패널을 확인합니다.",
-      tts: "3단계, 초고위험 소외지역 분석입니다. 소멸위험지수가 가장 높은 경북 의성군으로 이동하여 13대 결핍 지표를 정밀 진단합니다.",
+      title: "3. 초고위험 소외지역 분석 (경북 의성군)",
       action: (next) => {
         if (typeof allRegionsComprehensiveData !== 'undefined') {
           const uiseongIdx = allRegionsComprehensiveData.findIndex(r => r.name.includes('의성'));
@@ -166,16 +69,14 @@
             executeSearchButton();
           }
         }
-        setTimeout(next, 4800);
+        setTimeout(next, 3800);
       }
     },
     {
-      title: "4. 전문 인프라 7대 분석 레이어 시각화",
-      desc: "상단 빠른 토글에서 분만공백(분만실 1시간 초과), 교통단절, 에너지소외 레이어를 순차적으로 켜서 결핍 권역을 투사합니다.",
-      tts: "4단계, 전문 인프라 분석 레이어 시각화입니다. 분만공백과 대중교통 단절, 에너지 소외 레이어를 지도 위에 순차적으로 투사합니다.",
+      title: "4. 전문 인프라 분석 레이어 투사",
       action: (next) => {
         if (window.map) {
-          window.map.flyTo([36.0, 128.2], 8.2, { duration: 1.2 });
+          window.map.flyTo([36.0, 128.2], 8.2, { duration: 1.0 });
         }
 
         setTimeout(() => {
@@ -185,63 +86,55 @@
               toggleOverlayLayer('transit'); // 교통단절 ON
               setTimeout(() => {
                 toggleOverlayLayer('energy'); // 에너지소외 ON
-                setTimeout(next, 4800);
-              }, 1200);
-            }, 1200);
+                setTimeout(next, 3600);
+              }, 900);
+            }, 900);
           } else {
             next();
           }
-        }, 1000);
+        }, 700);
       }
     },
     {
-      title: "5. 좌측 패널 13대 인프라 카테고리 필터링",
-      desc: "좌측 패널에서 특정 인프라 버튼을 클릭하여 결핍 지역만 필터링하고 전용 이모지 마커로 실시간 갱신합니다.",
-      tts: "5단계, 13대 인프라 카테고리 필터링입니다. 패널에서 인프라 지표를 선택하여 해당 소외지역들을 지도에 즉시 필터링합니다.",
+      title: "5. 13대 인프라 카테고리 필터링",
       action: (next) => {
         if (typeof toggleInfraOnMap === 'function') {
           toggleInfraOnMap('🚨 응급의료');
           setTimeout(() => {
             toggleInfraOnMap('🚨 응급의료'); // 해제
-            toggleInfraOnMap('🚆 교통/철도'); // 교통철도 반영
-            setTimeout(next, 4500);
-          }, 1800);
+            toggleInfraOnMap('🚆 교통/철도'); // 교통/철도 ON
+            setTimeout(next, 3400);
+          }, 1400);
         } else {
           next();
         }
       }
     },
     {
-      title: "6. 지도 핀(마커) 원터치 숨김 시스템",
-      desc: "패널의 '📌 핀 숨기기' 버튼을 클릭하여 마커를 일시 숨기고, 인프라 결핍 권역 버퍼 원만을 깔끔하게 조망합니다.",
-      tts: "6단계, 핀 숨기기 시스템입니다. 핀을 원터치로 숨겨 인프라 결핍 권역 버퍼만을 깔끔하게 시각화한 후 복원합니다.",
+      title: "6. 지도 핀 숨김 / 표시 토글",
       action: (next) => {
         if (typeof toggleCategoryPins === 'function') {
-          toggleCategoryPins(); // 핀 숨기기
+          toggleCategoryPins(); // 핀 숨김
           setTimeout(() => {
-            toggleCategoryPins(); // 다시 표시하기
-            setTimeout(next, 4200);
-          }, 2000);
+            toggleCategoryPins(); // 핀 복원
+            setTimeout(next, 3200);
+          }, 1500);
         } else {
           next();
         }
       }
     },
     {
-      title: "7. 핀 겹침 방지 글래스모피즘 클러스터링",
-      desc: "지도를 광역으로 줌아웃하여 밀집된 수많은 마커들이 파랑, 주황, 빨강의 숫자 클러스터 배지로 스마트하게 통합되는 모습을 확인합니다.",
-      tts: "7단계, 마커 클러스터링입니다. 지도를 축소하여 밀집된 마커들이 숫자 클러스터 배지로 깔끔하게 자동 통합되는 모습을 시연합니다.",
+      title: "7. 마커 클러스터링 (핀 겹침 방지)",
       action: (next) => {
         if (window.map) {
-          window.map.flyTo([36.3, 127.8], 7.0, { duration: 1.5 });
+          window.map.flyTo([36.3, 127.8], 7.0, { duration: 1.2 });
         }
-        setTimeout(next, 4500);
+        setTimeout(next, 3400);
       }
     },
     {
-      title: "8. 실시간 자연재해 & 기상특보 상황판 연동",
-      desc: "상단 '🚨 재해' 상황판을 열고 도서·산간 호우/대설 통제구간 및 여객선 결항 정보를 지도에 펄스 마커로 즉시 시각화합니다.",
-      tts: "8단계, 실시간 자연재해 특보 연동입니다. 호우 대설 통제구간과 여객선 결항 정보를 상황판과 연동하여 지도에 즉시 표시합니다.",
+      title: "8. 실시간 자연재해 특보 상황판",
       action: (next) => {
         if (typeof openDisasterModal === 'function') {
           openDisasterModal();
@@ -250,66 +143,44 @@
           if (typeof triggerRainSnowDisaster === 'function') {
             triggerRainSnowDisaster();
           }
-          setTimeout(next, 5000);
-        }, 1600);
-      }
-    },
-    {
-      title: "9. 사용방법 가이드 & 자동 넘김 워크스루",
-      desc: "상단 'ℹ️ 사용방법' 튜토리얼을 오픈하여 11단계 인앱 가이드와 자동 슬라이드 넘김 기능을 소개합니다.",
-      tts: "9단계, 사용방법 가이드 시스템입니다. 초보자를 위한 11단계 안내 모달과 자동 넘김 기능을 소개합니다.",
-      action: (next) => {
-        if (typeof openTutorial === 'function') {
-          openTutorial();
-        }
-        setTimeout(() => {
-          if (typeof closeTutorial === 'function') {
-            closeTutorial();
-          }
           setTimeout(next, 3800);
-        }, 2200);
+        }, 1200);
       }
     },
     {
-      title: "10. 좌측 패널 접기/펼치기 (지도 뷰 극대화)",
-      desc: "사이드바 우측에 밀착된 ◀/▶ 플로팅 핸들을 클릭하여 패널을 부드럽게 접어 지도를 화면 전체로 극대화합니다.",
-      tts: "10단계, 좌측 패널 접기 및 펼치기 제어입니다. 원터치 핸들로 패널을 접어 몰입감 높은 지도 전체 화면을 구현합니다.",
+      title: "9. 좌측 패널 접기 / 펼치기",
       action: (next) => {
         if (typeof toggleSidebarPanel === 'function') {
-          toggleSidebarPanel(); // 접기
+          toggleSidebarPanel(); // 패널 접기
           setTimeout(() => {
-            toggleSidebarPanel(); // 다시 펼치기
-            setTimeout(next, 4200);
-          }, 2000);
+            toggleSidebarPanel(); // 패널 펼치기
+            setTimeout(next, 3000);
+          }, 1400);
         } else {
           next();
         }
       }
     },
     {
-      title: "11. 실시간 트래픽 스트림 & 10분 동기화 타이머",
-      desc: "상단 LIVE 상태 바에서 전국 18대 인프라 트래픽 스트림과 10분 주기 자동 동기화 카운트다운 타이머를 확인합니다.",
-      tts: "11단계, 실시간 트래픽 스트림입니다. 상단 상태 바에서 전국 인프라 데이터의 실시간 동기화 주기와 타이머를 관리합니다.",
+      title: "10. 실시간 동기화 상태 바 & 타이머",
       action: (next) => {
         const statusBar = document.querySelector('.sync-status-bar');
         if (statusBar) {
-          statusBar.style.boxShadow = '0 0 16px rgba(0, 122, 255, 0.6)';
+          statusBar.style.boxShadow = '0 0 16px rgba(0, 122, 255, 0.7)';
           statusBar.style.borderColor = '#007aff';
           setTimeout(() => {
             statusBar.style.boxShadow = '';
             statusBar.style.borderColor = '';
-          }, 2500);
+          }, 2000);
         }
-        setTimeout(next, 4000);
+        setTimeout(next, 2800);
       }
     },
     {
-      title: "12. 풀코스 시연 완료 및 초기화",
-      desc: "모든 핵심 기능 시연이 성공적으로 완료되었습니다! 지도를 초기 상태로 복구하며, 전국 229개 지역을 자유롭게 분석해 보세요.",
-      tts: "대한민국 인프라 소외지역 분석 플랫폼의 모든 기능 시연이 완료되었습니다. 전국 지도를 자유롭게 탐색해 보세요.",
+      title: "11. 시연 완료 및 초기화",
       action: (next) => {
         cleanupDemoState();
-        setTimeout(next, 3000);
+        setTimeout(next, 2200);
       }
     }
   ];
@@ -363,7 +234,7 @@
 
     // 8. 카메라 원위치
     if (window.map) {
-      window.map.flyTo([36.1, 127.8], 7.2, { duration: 1.8 });
+      window.map.flyTo([36.1, 127.8], 7.2, { duration: 1.5 });
     }
   }
 
@@ -372,7 +243,7 @@
   let isPaused = false;
   let isMinimized = false;
 
-  // 플로팅 시연 컨트롤러 UI 생성
+  // 플로팅 시연 컨트롤러 UI 생성 (설명 텍스트 제거된 슬림 컴팩트 디자인)
   function createDemoControllerUI() {
     if (document.getElementById('demoControlWidget')) return;
 
@@ -388,67 +259,60 @@
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border: 1px solid rgba(255, 255, 255, 0.7);
-      border-radius: 20px;
-      padding: 16px 20px;
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-radius: 18px;
+      padding: 12px 16px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      width: 340px;
+      width: 290px;
       box-sizing: border-box;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     `;
 
     widget.innerHTML = `
-      <!-- 헤더 -->
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:17px;">🎬</span>
-          <span style="font-weight:800; font-size:14px; color:#1d1d1f; letter-spacing:-0.2px;">전 기능 풀코스 자동 시연</span>
+      <!-- 헤더 (타이틀 & 배지 & 최소화 버튼) -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:15px;">🎬</span>
+          <span style="font-weight:800; font-size:13px; color:#1d1d1f; letter-spacing:-0.2px;">자동 시연</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          <!-- 구글 TTS 토글 버튼 -->
-          <button id="demoTtsToggleBtn" title="구글 TTS 안내 켜기/끄기" style="background:rgba(0,122,255,0.1); border:1px solid rgba(0,122,255,0.3); border-radius:12px; font-size:11px; font-weight:700; color:#007aff; padding:3px 8px; cursor:pointer; display:flex; align-items:center; gap:3px; transition:all 0.2s;">
-            <span id="demoTtsIcon">🔊</span> <span id="demoTtsText">구글 TTS ON</span>
-          </button>
-          <span id="demoStepBadge" style="font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:12px; background:#e5e5ea; color:#3a3a3c;">
+          <span id="demoStepBadge" style="font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px; background:#e5e5ea; color:#3a3a3c;">
             READY
           </span>
-          <button id="demoMinimizeBtn" title="최소화" style="background:none; border:none; cursor:pointer; font-size:13px; color:#8e8e93; padding:2px 4px; border-radius:4px; line-height:1;">
+          <button id="demoMinimizeBtn" title="최소화" style="background:none; border:none; cursor:pointer; font-size:12px; color:#8e8e93; padding:2px; line-height:1;">
             ✕
           </button>
         </div>
       </div>
 
       <!-- 프로그레스 바 -->
-      <div style="width:100%; height:4px; background:rgba(0,0,0,0.06); border-radius:2px; margin-bottom:12px; overflow:hidden;">
-        <div id="demoProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #007aff, #5856d6); transition:width 0.4s ease; border-radius:2px;"></div>
+      <div style="width:100%; height:3.5px; background:rgba(0,0,0,0.06); border-radius:2px; margin-bottom:9px; overflow:hidden;">
+        <div id="demoProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #007aff, #5856d6); transition:width 0.35s ease; border-radius:2px;"></div>
       </div>
 
-      <!-- 단계 제목 & 설명 -->
-      <div id="demoTitle" style="font-size:13.5px; font-weight:800; color:#007aff; margin-bottom:5px; line-height:1.35; word-break:keep-all;">
-        12단계 핵심 기능 자동 시연
-      </div>
-      <div id="demoDesc" style="font-size:11.5px; color:#636366; margin-bottom:14px; line-height:1.45; min-height:36px; word-break:keep-all;">
-        버튼을 누르면 전국 지도, 행정구역 검색, 7대 인프라 레이어, 마커 클러스터링, 재해 상황판까지 전 기능이 음성과 함께 자동 실행됩니다.
+      <!-- 현재 실행 중인 단계명 (설명문 제거됨) -->
+      <div id="demoTitle" style="font-size:12.5px; font-weight:700; color:#007aff; margin-bottom:10px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+        원터치 자동 시연 모드
       </div>
 
       <!-- 컨트롤 버튼 영역 -->
       <div id="demoBtnGroupReady" style="display:flex; gap:6px;">
-        <button id="demoStartBtn" style="flex:1; padding:10px 14px; border:none; border-radius:12px; background:linear-gradient(135deg, #007aff, #0056b3); color:#fff; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(0,122,255,0.35); transition:all 0.2s;">
-          ▶ 전 기능 자동 시연 시작
+        <button id="demoStartBtn" style="flex:1; padding:8px 12px; border:none; border-radius:10px; background:linear-gradient(135deg, #007aff, #0056b3); color:#fff; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 3px 10px rgba(0,122,255,0.3); transition:all 0.2s;">
+          ▶ 자동 시연 시작
         </button>
       </div>
 
-      <div id="demoBtnGroupRunning" style="display:none; gap:6px; flex-wrap:wrap;">
-        <button id="demoPrevBtn" style="flex:1; padding:7px 8px; border:1px solid #d1d1d6; border-radius:8px; background:#fff; color:#1d1d1f; font-size:11.5px; font-weight:600; cursor:pointer;">
+      <div id="demoBtnGroupRunning" style="display:none; gap:5px; flex-wrap:wrap;">
+        <button id="demoPrevBtn" style="flex:1; padding:6px 6px; border:1px solid #d1d1d6; border-radius:7px; background:#fff; color:#1d1d1f; font-size:11px; font-weight:600; cursor:pointer;">
           ◀ 이전
         </button>
-        <button id="demoPauseBtn" style="flex:1.2; padding:7px 8px; border:none; border-radius:8px; background:#ff9500; color:#fff; font-size:11.5px; font-weight:700; cursor:pointer;">
+        <button id="demoPauseBtn" style="flex:1.2; padding:6px 6px; border:none; border-radius:7px; background:#ff9500; color:#fff; font-size:11px; font-weight:700; cursor:pointer;">
           ⏸ 일시정지
         </button>
-        <button id="demoNextBtn" style="flex:1; padding:7px 8px; border:1px solid #d1d1d6; border-radius:8px; background:#fff; color:#1d1d1f; font-size:11.5px; font-weight:600; cursor:pointer;">
+        <button id="demoNextBtn" style="flex:1; padding:6px 6px; border:1px solid #d1d1d6; border-radius:7px; background:#fff; color:#1d1d1f; font-size:11px; font-weight:600; cursor:pointer;">
           다음 ▶
         </button>
-        <button id="demoStopBtn" style="width:100%; margin-top:4px; padding:6px; border:none; border-radius:8px; background:rgba(255,59,48,0.12); color:#ff3b30; font-size:11.5px; font-weight:700; cursor:pointer;">
+        <button id="demoStopBtn" style="width:100%; margin-top:3px; padding:5px; border:none; border-radius:7px; background:rgba(255,59,48,0.12); color:#ff3b30; font-size:11px; font-weight:700; cursor:pointer;">
           ⏹ 시연 즉시 종료
         </button>
       </div>
@@ -463,35 +327,6 @@
     document.getElementById('demoPrevBtn').addEventListener('click', prevStep);
     document.getElementById('demoNextBtn').addEventListener('click', nextStep);
     document.getElementById('demoMinimizeBtn').addEventListener('click', toggleMinimizeWidget);
-    document.getElementById('demoTtsToggleBtn').addEventListener('click', toggleTts);
-  }
-
-  // 구글 TTS 토글 기능
-  function toggleTts() {
-    ttsEnabled = !ttsEnabled;
-    const btn = document.getElementById('demoTtsToggleBtn');
-    const icon = document.getElementById('demoTtsIcon');
-    const text = document.getElementById('demoTtsText');
-
-    if (!btn) return;
-
-    if (ttsEnabled) {
-      btn.style.background = 'rgba(0,122,255,0.1)';
-      btn.style.borderColor = 'rgba(0,122,255,0.3)';
-      btn.style.color = '#007aff';
-      if (icon) icon.innerText = '🔊';
-      if (text) text.innerText = '구글 TTS ON';
-      if (isRunning && !isPaused && demoSteps[currentStepIndex]) {
-        speakText(demoSteps[currentStepIndex].tts || demoSteps[currentStepIndex].desc);
-      }
-    } else {
-      stopTTS();
-      btn.style.background = 'rgba(142,142,147,0.12)';
-      btn.style.borderColor = 'rgba(142,142,147,0.3)';
-      btn.style.color = '#8e8e93';
-      if (icon) icon.innerText = '🔇';
-      if (text) text.innerText = '구글 TTS OFF';
-    }
   }
 
   // 위젯 최소화 / 복원 토글
@@ -523,18 +358,18 @@
       color: #fff;
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.4);
-      border-radius: 24px;
-      padding: 9px 16px;
-      font-size: 12.5px;
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 8px 24px rgba(0, 122, 255, 0.35);
+      box-shadow: 0 6px 20px rgba(0, 122, 255, 0.35);
       display: flex;
       align-items: center;
-      gap: 6px;
-      transition: all 0.25s ease;
+      gap: 5px;
+      transition: all 0.2s ease;
     `;
-    miniPill.innerHTML = `🎬 풀코스 시연 ${ttsEnabled ? '🔊' : '🔇'} ${isRunning ? `(${currentStepIndex + 1}/${demoSteps.length})` : ''}`;
+    miniPill.innerHTML = `🎬 자동 시연 ${isRunning ? `(${currentStepIndex + 1}/${demoSteps.length})` : ''}`;
     miniPill.addEventListener('click', () => {
       toggleMinimizeWidget();
     });
@@ -589,12 +424,6 @@
     const titleEl = document.getElementById('demoTitle');
     if (titleEl) titleEl.innerText = step.title;
 
-    const descEl = document.getElementById('demoDesc');
-    if (descEl) descEl.innerText = step.desc;
-
-    // 구글 TTS 음성 재생
-    speakText(step.tts || step.desc);
-
     // 액션 실행 ➔ 완료 시 자동으로 다음 단계 실행
     step.action(() => {
       if (isRunning && !isPaused) {
@@ -609,11 +438,10 @@
     const pauseBtn = document.getElementById('demoPauseBtn');
     if (!isPaused) {
       isPaused = true;
-      stopTTS();
       pauseBtn.innerText = "▶ 재개";
       pauseBtn.style.background = "#34c759";
-      const descEl = document.getElementById('demoDesc');
-      if (descEl) descEl.innerText = "[일시정지됨] '재개' 버튼을 누르시면 자동 시연이 계속 진행됩니다.";
+      const titleEl = document.getElementById('demoTitle');
+      if (titleEl) titleEl.innerText = "[일시정지됨] 클릭 시 계속 진행";
     } else {
       isPaused = false;
       pauseBtn.innerText = "⏸ 일시정지";
@@ -626,7 +454,6 @@
   // 수동 이전 단계 (자동 넘김 모드 유지)
   function prevStep() {
     if (!isRunning) return;
-    stopTTS();
     isPaused = false;
     const pauseBtn = document.getElementById('demoPauseBtn');
     if (pauseBtn) {
@@ -640,7 +467,6 @@
   // 수동 다음 단계 (자동 넘김 모드 유지)
   function nextStep() {
     if (!isRunning) return;
-    stopTTS();
     isPaused = false;
     const pauseBtn = document.getElementById('demoPauseBtn');
     if (pauseBtn) {
@@ -651,7 +477,7 @@
     runStep();
   }
 
-  // 풀코스 시연 정상 완료
+  // 시연 정상 완료
   function completeDemo() {
     isRunning = false;
     isPaused = false;
@@ -662,7 +488,7 @@
 
     const startBtn = document.getElementById('demoStartBtn');
     if (startBtn) {
-      startBtn.innerText = '↺ 전 기능 자동 시연 다시 시작';
+      startBtn.innerText = '↺ 자동 시연 다시 시작';
     }
 
     const badge = document.getElementById('demoStepBadge');
@@ -676,12 +502,7 @@
     if (pBar) pBar.style.width = '100%';
 
     const titleEl = document.getElementById('demoTitle');
-    if (titleEl) titleEl.innerText = '모든 핵심 기능 시연이 완료되었습니다 ✨';
-
-    const descEl = document.getElementById('demoDesc');
-    if (descEl) descEl.innerText = '전국 229개 행정구역 검색, 7대 인프라 레이어, 마커 클러스터링, 자연재해 상황판까지 전 기능 시연이 끝났습니다. 자유롭게 탐색해 보세요!';
-
-    speakText('대한민국 인프라 소외지역 분석 플랫폼의 모든 기능 시연이 완료되었습니다. 전국 지도를 자유롭게 탐색해 보세요.');
+    if (titleEl) titleEl.innerText = '모든 시연이 완료되었습니다 ✨';
   }
 
   // 시연 강제 종료
@@ -690,7 +511,6 @@
     isPaused = false;
     currentStepIndex = 0;
 
-    stopTTS();
     cleanupDemoState();
 
     document.getElementById('demoBtnGroupReady').style.display = 'flex';
@@ -698,7 +518,7 @@
 
     const startBtn = document.getElementById('demoStartBtn');
     if (startBtn) {
-      startBtn.innerText = '▶ 전 기능 자동 시연 시작';
+      startBtn.innerText = '▶ 자동 시연 시작';
     }
 
     const badge = document.getElementById('demoStepBadge');
@@ -713,9 +533,6 @@
 
     const titleEl = document.getElementById('demoTitle');
     if (titleEl) titleEl.innerText = '시연이 종료되었습니다';
-
-    const descEl = document.getElementById('demoDesc');
-    if (descEl) descEl.innerText = '언제든 버튼을 눌러 풀코스 자동 시연을 다시 시작하실 수 있습니다.';
   }
 
   // 전역 API 노출
